@@ -44,6 +44,7 @@ PLAN = {
     # "scratch":   ("scratch",     20, False, ["--holes-left", "0.45"]),
     "dig":         ("dig",         16, False, ["--range", "0:19"]),
     "spin":        ("spin",        18, False, []),                     # chases her tail: two full circles
+    "spin@slow":   ("circle",      10, False, []),                     # the same two circles, slowly: turning round before bed
     "restdown":    ("restdown",    16, False, ["--no-leg-gaps", "--range", "0:18"]),   # down into a sploot
     "rest":        ("rest",        12, True,  ["--no-leg-gaps", "--range", "0:999"]),  # splooted, awake, looking about
     "restup":      ("restup",      16, False, ["--no-leg-gaps", "--range", "0:17"]),

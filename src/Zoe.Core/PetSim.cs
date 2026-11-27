@@ -7,7 +7,7 @@ public sealed record AnimInfo(int Frames, double Fps, bool Loop)
 
 public enum PetState { Sit, Walk, Run, Sniff, Yawn, Stretch, LieDown, Sleep, GetUp, Happy, Dangle, Air, Turn, Transition, Crouch,
     Wag, Greet, PlayBow, PickUp, Drop, Carry, Bark, Paw, BellyDown, Belly, BellyUp,
-    Scratch, Dig, Spin, RestDown, Rest, RestUp }
+    Scratch, Dig, Spin, RestDown, Rest, RestUp, Circle }
 
 /// <summary>Body posture, used to insert sit-down / stand-up transitions between states.</summary>
 public enum Posture { None, Stand, Sit, Lie }
@@ -121,6 +121,7 @@ public sealed class PetSim
             if (value != Mood.Normal) { BallActive = false; BallHeld = false; }
             if (!Grounded || old == Mood.Hidden && value == Mood.Normal) return;
             if (value == Mood.Normal && State is PetState.Sleep or PetState.LieDown) WakeUp();
+            else if (value == Mood.Normal && State == PetState.Circle) Decide(); // no need for bed after all
             else if (value is Mood.Nap or Mood.Doze && State != PetState.Sleep) Decide();
             else if (value == Mood.Nap && State == PetState.Sleep && !InNapCorner()) Decide();
         }
@@ -569,6 +570,9 @@ public sealed class PetSim
             case PetState.RestUp:
                 if (AnimFinished()) Decide();
                 break;
+            case PetState.Circle:
+                if (AnimFinished()) Set(PetState.LieDown);
+                break;
             case PetState.RestDown:
                 if (AnimFinished()) Enter(PetState.Rest, _restFor);
                 break;
@@ -856,7 +860,7 @@ public sealed class PetSim
         switch (_mood)
         {
             case Mood.Doze:
-                if (State != PetState.Sleep) Set(PetState.LieDown);
+                if (State is not (PetState.Sleep or PetState.Circle)) Set(PetState.LieDown);
                 return;
 
             case Mood.Nap:
@@ -993,6 +997,9 @@ public sealed class PetSim
     /// <summary>Change state, playing a sit-down / stand-up transition first if the posture changes.</summary>
     private void Set(PetState s, double duration = 0)
     {
+        // Round and round before she settles, like dogs do.
+        if (s == PetState.LieDown && State != PetState.Circle && _posture != Posture.Lie && _anims.ContainsKey("circle"))
+            s = PetState.Circle;
         var want = PostureOf(s);
         if (want != Posture.None && _posture != Posture.None && want != _posture)
         {
@@ -1053,7 +1060,7 @@ public sealed class PetSim
         PetState.Sit or PetState.Happy or PetState.Yawn => Posture.Sit,
         PetState.Walk or PetState.Run or PetState.Sniff or PetState.Stretch or PetState.Crouch or PetState.Wag
             or PetState.Greet or PetState.PlayBow or PetState.PickUp or PetState.Drop or PetState.Carry or PetState.Bark or PetState.BellyDown => Posture.Stand,
-        PetState.Dig or PetState.Spin or PetState.RestDown => Posture.Stand,
+        PetState.Dig or PetState.Spin or PetState.Circle or PetState.RestDown => Posture.Stand,
         PetState.Rest => Posture.Lie,
         PetState.Paw or PetState.Scratch => Posture.Sit,
         PetState.Belly => Posture.Lie,

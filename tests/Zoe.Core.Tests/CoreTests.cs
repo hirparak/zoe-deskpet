@@ -761,4 +761,27 @@ public class SleepCycleTests
         for (int i = 0; i < 60 * 30; i++) sim.Tick(1 / 60.0, ps, Areas);
         Assert.Equal(0, sim.Tiredness);
     }
+
+    [Fact]
+    public void CirclesBeforeLyingDownAndGivesUpIfWorkIsOver()
+    {
+        var anims = new Dictionary<string, AnimInfo>(Anims) { ["circle"] = new(20, 10, false) };
+        var ps = PlatformBuilder.Build(new World(Areas, []), 100, 40);
+        var sim = new PetSim(anims, new ZoeConfig(), new Random(4)) { HalfWidth = 60 };
+        sim.Spawn(1300, 1300);
+        for (int i = 0; i < 120; i++) sim.Tick(1 / 60.0, ps, Areas);
+        sim.Mood = Mood.Doze;
+        var seen = new List<string>();
+        for (int i = 0; i < 60 * 8; i++) { sim.Tick(1 / 60.0, ps, Areas); if (seen.Count == 0 || seen[^1] != sim.Anim) seen.Add(sim.Anim); }
+        Assert.Equal(new[] { "circle", "liedown", "sleep" }, seen.SkipWhile(a => a != "circle").Take(3));
+
+        sim.Mood = Mood.Normal;
+        for (int i = 0; i < 60 * 3; i++) sim.Tick(1 / 60.0, ps, Areas);
+        sim.Mood = Mood.Doze;
+        for (int i = 0; i < 30 && sim.State != PetState.Circle; i++) sim.Tick(1 / 60.0, ps, Areas);
+        Assert.Equal(PetState.Circle, sim.State);
+        sim.Mood = Mood.Normal;                       // back at the keyboard mid-circle
+        Assert.NotEqual(PetState.Circle, sim.State);
+        for (int i = 0; i < 60; i++) { sim.Tick(1 / 60.0, ps, Areas); Assert.NotEqual(PetState.LieDown, sim.State); }
+    }
 }
