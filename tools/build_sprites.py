@@ -39,7 +39,9 @@ PLAN = {
     "bellydown":   ("bellydown",   20, False, ["--no-leg-gaps", "--drop", "15:24"]),      # lie down and roll onto her back
     "bellydown@up": ("bellyup",    20, False, ["--no-leg-gaps", "--drop", "15:24", "--reverse"]),
     "belly":       ("belly",       16, True,  ["--no-leg-gaps", "--range", "0:999"]),   # belly rub
-    "scratch":     ("scratch",     20, False, ["--holes-left", "0.45"]),   # facing you: hind leg up from the hip to her ear
+    # "scratch" is retired: legs were finally right (front view, key pose gen/keys/scratch.png, tools/redo12.sh) but
+    # the motion read as waving a leg in the air rather than scratching. The app skips it when the folder is absent.
+    # "scratch":   ("scratch",     20, False, ["--holes-left", "0.45"]),
     "dig":         ("dig",         16, False, ["--range", "0:19"]),
     "spin":        ("spin",        18, False, []),                     # chases her tail: two full circles
     "restdown":    ("restdown",    16, False, ["--no-leg-gaps", "--range", "0:18"]),   # down into a sploot

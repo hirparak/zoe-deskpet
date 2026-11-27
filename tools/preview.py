@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 meta = json.loads((ROOT / "sprites/sprites.json").read_text())
 GROUPS = [
-    ("Newest: sploot, new scratch, cleaner gallop", ["restdown", "rest", "restup", "scratch", "run"]),
+    ("Newest: sploot, cleaner gallop", ["restdown", "rest", "restup", "run"]),
     ("Small idles, and redone bark / happy / sleep", ["dig", "spin", "bark", "happy", "sleep"]),
     ("Belly rubs and asking to play", ["bellydown", "belly", "bellyup", "paw"]),
     ("Playtime", ["wag", "greet", "playbow", "pickup", "carry", "drop", "ball"]),

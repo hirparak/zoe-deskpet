@@ -121,10 +121,6 @@
       "fps": 16,
       "loop": true
     },
-    "scratch": {
-      "fps": 20,
-      "loop": false
-    },
     "dig": {
       "fps": 16,
       "loop": false
