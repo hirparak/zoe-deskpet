@@ -134,6 +134,7 @@ internal sealed class PetForm : Form
         }
 
         _sim.CursorX = Cursor.Position.X;
+        _sim.Hour = DateTime.Now.TimeOfDay.TotalHours;
         _sim.Tick(dt, _platforms, _areas);
         Render();
         _ball?.Render();

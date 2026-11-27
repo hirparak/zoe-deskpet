@@ -559,7 +559,7 @@ public class PlayTests
         for (int seed = 0; seed < 6; seed++)
         {
             var (sim, ps) = Make(seed);
-            for (int i = 0; i < 60 * 300; i++) { sim.Tick(1 / 60.0, ps, Areas); seen.Add(sim.State); }
+            for (int i = 0; i < 60 * 600; i++) { sim.Tick(1 / 60.0, ps, Areas); seen.Add(sim.State); }
         }
         Assert.Contains(PetState.Scratch, seen);
         Assert.Contains(PetState.Dig, seen);
@@ -676,5 +676,89 @@ public class NapTests
         Assert.Equal("rollback", sim.Anim);
         for (int i = 0; i < 60 * 2; i++) { sim.Tick(1 / 60.0, ps, areas); if (seen[^1] != sim.Anim) seen.Add(sim.Anim); }
         Assert.Contains("getup", seen.SkipWhile(a => a != "rollback"));
+    }
+}
+
+public class SleepCycleTests
+{
+    static readonly RectI[] Areas = { new(0, 0, 2560, 1400) };
+    static readonly Dictionary<string, AnimInfo> Anims = new()
+    {
+        ["sit"] = new(4, 6, true), ["walk"] = new(6, 10, true), ["run"] = new(6, 14, true), ["yawn"] = new(8, 8, false),
+        ["liedown"] = new(4, 8, false), ["sleep"] = new(4, 3, true), ["getup"] = new(4, 8, false), ["fall"] = new(2, 8, true),
+    };
+
+    static (PetSim, List<Platform>) Make(int seed, ZoeConfig? cfg = null)
+    {
+        var sim = new PetSim(Anims, cfg ?? new ZoeConfig(), new Random(seed)) { HalfWidth = 60 };
+        var ps = PlatformBuilder.Build(new World(Areas, []), 100, 40);
+        sim.Spawn(1300, 1300);
+        for (int i = 0; i < 120; i++) sim.Tick(1 / 60.0, ps, Areas);
+        return (sim, ps);
+    }
+
+    /// <summary>Fraction of the next <paramref name="seconds"/> spent asleep.</summary>
+    static double AsleepShare(PetSim sim, List<Platform> ps, double seconds)
+    {
+        int asleep = 0, n = (int)(seconds * 60);
+        for (int i = 0; i < n; i++) { sim.Tick(1 / 60.0, ps, Areas); if (sim.State == PetState.Sleep) asleep++; }
+        return (double)asleep / n;
+    }
+
+    [Fact]
+    public void ChasingABallTiresHerAndSleepRestoresHer()
+    {
+        var (sim, ps) = Make(1);
+        double before = sim.Tiredness;
+        sim.ThrowBall(2300, 1000, 500, -300);
+        for (int i = 0; i < 60 * 8; i++) sim.Tick(1 / 60.0, ps, Areas);
+        Assert.True(sim.Tiredness > before + 0.02, $"tiredness {before} -> {sim.Tiredness}");
+
+        sim.Tiredness = 0.9;
+        sim.Mood = Mood.Doze;
+        for (int i = 0; i < 60 * 60; i++) sim.Tick(1 / 60.0, ps, Areas);
+        Assert.Equal(PetState.Sleep, sim.State);
+        Assert.True(sim.Tiredness < 0.6, $"tiredness after a minute asleep {sim.Tiredness}");
+    }
+
+    [Fact]
+    public void WornOutZoeYawnsGoesToBedAndSleepsUntilRested()
+    {
+        var (sim, ps) = Make(2);
+        sim.Tiredness = 0.95;
+        var seen = new List<PetState>();
+        double slept = 0;
+        for (int i = 0; i < 60 * 400; i++)
+        {
+            sim.Tick(1 / 60.0, ps, Areas);
+            if (seen.Count == 0 || seen[^1] != sim.State) seen.Add(sim.State);
+            if (sim.State == PetState.Sleep) slept += 1 / 60.0;
+            if (seen.Contains(PetState.Sleep) && sim.State == PetState.GetUp) break;
+        }
+        int yawn = seen.IndexOf(PetState.Yawn), bed = seen.IndexOf(PetState.LieDown);
+        Assert.True(yawn >= 0 && bed > yawn, string.Join(",", seen));
+        Assert.True(slept > 100, $"slept only {slept:0}s");
+        Assert.True(sim.Tiredness < 0.3, $"woke still tired: {sim.Tiredness}");
+    }
+
+    [Fact]
+    public void SleepsMoreAtNightThanInTheMorning()
+    {
+        double day = 0, night = 0;
+        for (int seed = 0; seed < 4; seed++)
+        {
+            var (a, pa) = Make(seed); a.Hour = 10; day += AsleepShare(a, pa, 1800);
+            var (b, pb) = Make(seed); b.Hour = 23; night += AsleepShare(b, pb, 1800);
+        }
+        Assert.True(night > day * 1.3, $"day {day / 4:0.00}, night {night / 4:0.00}");
+    }
+
+    [Fact]
+    public void CanBeSwitchedOff()
+    {
+        var (sim, ps) = Make(3, new ZoeConfig { SleepCycle = false });
+        sim.ThrowBall(2300, 1000, 500, -300);
+        for (int i = 0; i < 60 * 30; i++) sim.Tick(1 / 60.0, ps, Areas);
+        Assert.Equal(0, sim.Tiredness);
     }
 }

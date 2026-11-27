@@ -11,6 +11,7 @@
   "walkSpeed": 70,
   "runSpeed": 260,
   "energy": 1.0,                // 0.5 = lazy, 2 = zoomies
+  "sleepCycle": true,           // play tires her out, sleep restores her; sleepier after lunch and at night
 
   // Zoe barks (silently) when the window her owner is looking at has one of these words in its title,
   // e.g. a YouTube video about horses. [] turns it off.

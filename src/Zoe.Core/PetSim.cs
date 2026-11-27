@@ -62,6 +62,7 @@ public sealed class PetSim
     private double _fetchWait, _petUntil, _nextBark;
     private bool _following, _seekGo;
     private double _restFor = 10;
+    private bool _bedtimeYawn;
     private int _seek;           // attention seeking: 1 stare, 2 paw, 3 stare, 4 bark, 5 stare
     private double _followUntil, _cursorMovedAt, _lastCursorX = double.NaN, _lastAttention;
 
@@ -84,6 +85,10 @@ public sealed class PetSim
 
     /// <summary>Mouse pointer X in screen pixels (set by the app); she brings her ball and her greetings to it.</summary>
     public double? CursorX { get; set; }
+    /// <summary>Local time of day in hours (0-24), set by the shell; null = no daily rhythm.</summary>
+    public double? Hour { get; set; }
+    /// <summary>0 = fresh, 1 = worn out. Builds with play and time awake, falls while she sleeps or rests.</summary>
+    public double Tiredness { get; set; }
     public bool BallActive { get; private set; }
     public bool BallHeld { get; private set; }
     /// <summary>The ball is drawn separately unless it's in her mouth (then it's part of her sprite).</summary>
@@ -141,6 +146,7 @@ public sealed class PetSim
         _stateTime += dt;
         _animTime += dt;
 
+        UpdateTiredness(dt);
         if (State == PetState.Air) UpdateAir(dt);
         else if (State != PetState.Dangle)
         {
@@ -150,6 +156,39 @@ public sealed class PetSim
             else EnterAir(0, 0);
         }
         UpdateAnim();
+    }
+
+    // ---------- sleep cycle ----------
+
+    /// <summary>How sleepy the hour makes her: 1 in the daytime, more after lunch, most at night.</summary>
+    private double Drowsy => Hour switch
+    {
+        null => 1,
+        >= 22 or < 6 => 2.0,      // night
+        >= 20 => 1.5,             // evening
+        >= 13 and < 15 => 1.3,    // after-lunch lull
+        _ => 1,
+    };
+
+    /// <summary>Liveliness after tiredness and time of day: what her zoomies, running and ball games scale with.</summary>
+    private double Pep => _cfg.SleepCycle ? _cfg.Energy * (1 - 0.85 * Tiredness) / Drowsy : _cfg.Energy;
+
+    private void UpdateTiredness(double dt)
+    {
+        if (!_cfg.SleepCycle) { Tiredness = 0; return; }
+        double perSec = State switch
+        {
+            PetState.Sleep => -1.0 / 150,                     // a worn-out Zoe needs a couple of minutes
+            PetState.Rest or PetState.Belly => -1.0 / 400,    // a sploot helps a little
+            PetState.LieDown or PetState.GetUp or PetState.RestDown or PetState.RestUp or PetState.BellyDown or PetState.BellyUp => 0,
+            PetState.Run => 1.0 / 120,                         // zoomies and ball chasing wear her out
+            PetState.Air or PetState.Crouch or PetState.Spin or PetState.Dig or PetState.Greet or PetState.PlayBow or PetState.Bark => 1.0 / 300,
+            PetState.Walk or PetState.Carry or PetState.PickUp or PetState.Drop => 1.0 / 900,
+            PetState.Dangle => 0,
+            _ => 1.0 / 4000,                                  // just being awake
+        };
+        if (perSec > 0) perSec *= Drowsy;
+        Tiredness = Math.Clamp(Tiredness + perSec * dt, 0, 1);
     }
 
     // ---------- interaction ----------
@@ -581,7 +620,7 @@ public sealed class PetSim
             case PetState.Greet:
                 if (AnimFinished())
                 {
-                    if (_rng.NextDouble() < 0.4 * _cfg.Energy) StartZoomies();
+                    if (_rng.NextDouble() < 0.4 * Pep) StartZoomies();
                     else WagFor(Rand(2, 4));
                 }
                 break;
@@ -593,7 +632,9 @@ public sealed class PetSim
                 }
                 break;
             case PetState.LieDown:
-                if (AnimFinished()) Set(PetState.Sleep, _mood == Mood.Normal ? Rand(8, 20) : double.PositiveInfinity);
+                // The more worn out she is (and the later it is), the longer she's out.
+                if (AnimFinished()) Set(PetState.Sleep, _mood != Mood.Normal ? double.PositiveInfinity
+                    : _cfg.SleepCycle ? (Rand(15, 30) + 150 * Tiredness) * Drowsy : Rand(8, 20));
                 break;
             case PetState.Stretch:
             case PetState.Yawn:
@@ -870,24 +911,33 @@ public sealed class PetSim
             Math.Abs(BallY - Y) <= 6 * _s && _rng.NextDouble() < 0.7)
         { _ballPlays--; Kick(); return; }
 
-        if (_rng.NextDouble() < 0.2 * _cfg.Energy && TryJump()) return;
+        // Worn out: a big yawn, then bed.
+        if (_cfg.SleepCycle && Tiredness >= 0.85 && !BallHeld)
+        {
+            if (!_bedtimeYawn && _posture != Posture.Lie) { _bedtimeYawn = true; Set(PetState.Yawn); return; }
+            _bedtimeYawn = false;
+            Set(PetState.LieDown); return;
+        }
+        _bedtimeYawn = false;
 
-        double e = _cfg.Energy;
+        if (_rng.NextDouble() < 0.2 * Pep && TryJump()) return;
+
+        double e = Pep, tired = _cfg.SleepCycle ? Tiredness : 0;
         bool onFloor = _support?.Kind == PlatformKind.Floor;
         var options = new (PetState S, double W)[]
         {
             (PetState.Sit, 3), (PetState.Walk, 4), (PetState.Run, 0.8 * e), (PetState.Sniff, 1.2),
-            (PetState.Yawn, 0.6), (PetState.Stretch, 0.5),
+            (PetState.Yawn, 0.6 + 3 * tired), (PetState.Stretch, 0.5),
             (PetState.Wag, _anims.ContainsKey("wag") ? 1.6 : 0),
             (PetState.PlayBow, onFloor ? 0.45 * e : 0),                              // zoomies
             (PetState.Carry, onFloor && HasBallAnims && !BallActive ? 0.55 * e : 0), // fetch her ball
             (PetState.BellyDown, _anims.ContainsKey("belly") && _anims.ContainsKey("bellydown") ? 0.3 : 0),
             (PetState.Greet, CursorX is not null ? 1.0 : 0),                         // follow the pointer about
-            (PetState.RestDown, _anims.ContainsKey("rest") && _anims.ContainsKey("restdown") ? 1.6 : 0), // sploot
+            (PetState.RestDown, _anims.ContainsKey("rest") && _anims.ContainsKey("restdown") ? 1.6 + 4 * tired : 0), // sploot
             (PetState.Scratch, _anims.ContainsKey("scratch") ? 0.5 : 0),
             (PetState.Dig, _anims.ContainsKey("dig") ? 0.35 : 0),
             (PetState.Spin, _anims.ContainsKey("spin") ? 0.35 * e : 0),              // chase her tail
-            (PetState.LieDown, 0.3 / e),                                             // keep last: wins outright at energy 0
+            (PetState.LieDown, (_cfg.SleepCycle ? 0.08 + 0.4 * tired : 0.3) / _cfg.Energy + 4 * tired * tired * tired * Drowsy),                                             // keep last: wins outright at energy 0
         };
         double roll = _rng.NextDouble() * options.Sum(o => o.W);
         var pick = options[^1].S;

@@ -44,6 +44,8 @@ public sealed class ZoeConfig
     public double RunSpeed { get; set; } = 260;
     /// <summary>Overall liveliness multiplier: higher = more running/jumping.</summary>
     public double Energy { get; set; } = 1.0;
+    /// <summary>Play tires her out, sleep restores her, and she's sleepier after lunch and at night.</summary>
+    public bool SleepCycle { get; set; } = true;
     /// <summary>Words in the active window's title that set her off barking (whole words, case-insensitive).</summary>
     public List<string> BarkAt { get; set; } = new() { "horse", "horses", "pony", "dog", "dogs", "puppy", "puppies" };
     public List<Rule> Rules { get; set; } = new();
