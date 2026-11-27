@@ -43,8 +43,8 @@ PLAN = {
     # the motion read as waving a leg in the air rather than scratching. The app skips it when the folder is absent.
     # "scratch":   ("scratch",     20, False, ["--holes-left", "0.45"]),
     "dig":         ("dig",         16, False, ["--range", "0:19"]),
-    "spin":        ("spin",        18, False, []),                     # chases her tail: two full circles
-    "spin@back":   ("turnback",    14, False, ["--range", "1:13"]),    # about-turn showing her back: with "turn" it makes walking in a circle
+    "spin":        ("spin",        22, False, ["--range", "0:999"]),   # chases her tail: three quick circles, mouth open
+    "circle":      ("circle",      14, False, ["--range", "0:999"]),   # nose down, walks round twice before lying down
     "restdown":    ("restdown",    16, False, ["--no-leg-gaps", "--range", "0:18"]),   # down into a sploot
     "rest":        ("rest",        12, True,  ["--no-leg-gaps", "--range", "0:999"]),  # splooted, awake, looking about
     "restup":      ("restup",      16, False, ["--no-leg-gaps", "--range", "0:17"]),

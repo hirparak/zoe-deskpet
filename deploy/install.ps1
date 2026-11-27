@@ -56,7 +56,7 @@ icacls $Dest /setowner "*S-1-5-32-544" /T | Out-Null
 
 # --autostart lets Zoe's own menu ("Start when I sign in") decline the sign-in start without admin rights.
 $action = New-ScheduledTaskAction -Execute "$Dest\Zoe.exe" -Argument "--autostart" -WorkingDirectory $Dest
-# A Start menu entry, so she can be brought back after "Turn Zoe off".
+# A Start menu entry, so she can be brought back after "Goodbye for today".
 $lnk = (New-Object -ComObject WScript.Shell).CreateShortcut("$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Zoe.lnk")
 $lnk.TargetPath = "$Dest\Zoe.exe"; $lnk.WorkingDirectory = $Dest; $lnk.Description = "Zoe the desk pet"; $lnk.Save()
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $User

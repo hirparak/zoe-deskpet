@@ -794,32 +794,16 @@ public class SleepCycleTests
     }
 
     [Fact]
-    public void ChasesHerTailRoundInACircleNotOnTheSpot()
+    public void UsesTheCirclingArtWhenItExists()
     {
-        var anims = new Dictionary<string, AnimInfo>(Anims) { ["turn"] = new(10, 20, false), ["turnback"] = new(10, 20, false), ["spin"] = new(20, 18, false) };
+        var anims = new Dictionary<string, AnimInfo>(Anims) { ["circle"] = new(20, 10, false) };
         var ps = PlatformBuilder.Build(new World(Areas, []), 100, 40);
-        bool spun = false;
-        for (int seed = 0; seed < 8 && !spun; seed++)
-        {
-            var sim = new PetSim(anims, new ZoeConfig { SleepCycle = false }, new Random(seed)) { HalfWidth = 60 };
-            sim.Spawn(1300, 1300);
-            var seen = new List<string>(); double x0 = 0, far = 0; bool was = false;
-            for (int i = 0; i < 60 * 300; i++)
-            {
-                sim.Tick(1 / 60.0, ps, Areas);
-                bool now = sim.State == PetState.Spin;
-                if (now && !was) { x0 = sim.X; seen.Clear(); far = 0; }
-                if (now) { far = Math.Max(far, Math.Abs(sim.X - x0)); if (seen.Count == 0 || seen[^1] != sim.Anim) seen.Add(sim.Anim); }
-                if (was && !now)
-                {
-                    spun = true;
-                    Assert.Equal(new[] { "run", "turnback", "run", "turn", "run", "turnback", "run", "turn", "run", "turnback", "run", "turn" }, seen);
-                    Assert.True(far > 20, $"moved only {far:0}px");
-                    break;
-                }
-                was = now;
-            }
-        }
-        Assert.True(spun, "never chased her tail");
+        var sim = new PetSim(anims, new ZoeConfig(), new Random(4)) { HalfWidth = 60 };
+        sim.Spawn(1300, 1300);
+        for (int i = 0; i < 120; i++) sim.Tick(1 / 60.0, ps, Areas);
+        sim.Mood = Mood.Doze;
+        var seen = new List<string>();
+        for (int i = 0; i < 60 * 8; i++) { sim.Tick(1 / 60.0, ps, Areas); if (seen.Count == 0 || seen[^1] != sim.Anim) seen.Add(sim.Anim); }
+        Assert.Equal(new[] { "circle", "liedown", "sleep" }, seen.SkipWhile(a => a != "circle").Take(3));
     }
 }

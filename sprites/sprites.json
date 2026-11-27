@@ -126,7 +126,7 @@
       "loop": false
     },
     "spin": {
-      "fps": 18,
+      "fps": 22,
       "loop": false
     },
     "restdown": {
@@ -141,7 +141,7 @@
       "fps": 16,
       "loop": false
     },
-    "turnback": {
+    "circle": {
       "fps": 14,
       "loop": false
     }

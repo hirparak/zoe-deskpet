@@ -39,7 +39,7 @@ internal sealed class TrayMenu : IDisposable
         menu.Items.Add(new ToolStripSeparator());
         _autostart = new ToolStripMenuItem("Start when I sign in", null, (_, _) => ToggleAutostart()) { Checked = _form.Prefs.Autostart };
         menu.Items.Add(_autostart);
-        menu.Items.Add("Turn Zoe off", null, (_, _) => Application.Exit());
+        menu.Items.Add("Goodbye for today", null, (_, _) => Application.Exit());
 
         _icon = new NotifyIcon { Icon = icon, Text = "Zoe", ContextMenuStrip = menu, Visible = true };
         _icon.DoubleClick += (_, _) => { WakeForPlay(); _form.ComeHere(); };
