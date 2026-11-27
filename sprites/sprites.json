@@ -1,0 +1,137 @@
+{
+  "footOffset": 2,
+  "animations": {
+    "sit": {
+      "fps": 16,
+      "loop": true
+    },
+    "walk": {
+      "fps": 16,
+      "loop": true
+    },
+    "run": {
+      "fps": 16,
+      "loop": true
+    },
+    "sniff": {
+      "fps": 16,
+      "loop": false
+    },
+    "stretch": {
+      "fps": 16,
+      "loop": false
+    },
+    "liedown": {
+      "fps": 16,
+      "loop": false
+    },
+    "sleep": {
+      "fps": 16,
+      "loop": true
+    },
+    "happy": {
+      "fps": 16,
+      "loop": true
+    },
+    "getup": {
+      "fps": 16,
+      "loop": false
+    },
+    "dangle": {
+      "fps": 16,
+      "loop": true
+    },
+    "jump": {
+      "fps": 16,
+      "loop": false
+    },
+    "fall": {
+      "fps": 16,
+      "loop": true
+    },
+    "turn": {
+      "fps": 20,
+      "loop": false
+    },
+    "sitdown": {
+      "fps": 20,
+      "loop": false
+    },
+    "sit~look": {
+      "fps": 16,
+      "loop": true
+    },
+    "standup": {
+      "fps": 20,
+      "loop": false
+    },
+    "jumpprep": {
+      "fps": 24,
+      "loop": false
+    },
+    "yawn": {
+      "fps": 16,
+      "loop": false
+    },
+    "wag": {
+      "fps": 16,
+      "loop": true
+    },
+    "greet": {
+      "fps": 16,
+      "loop": false
+    },
+    "playbow": {
+      "fps": 16,
+      "loop": false
+    },
+    "carry": {
+      "fps": 16,
+      "loop": true
+    },
+    "pickup": {
+      "fps": 16,
+      "loop": false
+    },
+    "drop": {
+      "fps": 16,
+      "loop": false
+    },
+    "ball": {
+      "fps": 8,
+      "loop": true
+    },
+    "bark": {
+      "fps": 16,
+      "loop": true
+    },
+    "paw": {
+      "fps": 16,
+      "loop": false
+    },
+    "bellydown": {
+      "fps": 20,
+      "loop": false
+    },
+    "bellyup": {
+      "fps": 20,
+      "loop": false
+    },
+    "belly": {
+      "fps": 16,
+      "loop": true
+    },
+    "scratch": {
+      "fps": 16,
+      "loop": false
+    },
+    "dig": {
+      "fps": 16,
+      "loop": false
+    },
+    "spin": {
+      "fps": 18,
+      "loop": false
+    }
+  }
+}

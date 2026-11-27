@@ -1,0 +1,36 @@
+{
+  // Zoe's settings. Edits are picked up live, no restart needed
+  // (except "scale" and "pixelArt", which apply on next start).
+
+  "scale": 1.5,                 // sprite size multiplier (on top of Windows display scaling); 1.5 = ~120px dog at 100%
+  "pixelArt": true,             // crisp nearest-neighbour scaling for pixel-art frames
+  "napCorner": "bottom-right",  // where she goes for a proper nap: bottom-right | bottom-left
+  "hideFromScreenCapture": true,// invisible in Teams/Zoom screen shares and screenshots
+  "hideWhenFullscreen": true,   // vanish during full-screen video and PowerPoint slideshows
+  "idleDozeMinutes": 5,         // curl up where she is after this long with no mouse/keyboard
+  "walkSpeed": 70,
+  "runSpeed": 260,
+  "energy": 1.0,                // 0.5 = lazy, 2 = zoomies
+
+  // Zoe barks (silently) when the window her owner is looking at has one of these words in its title,
+  // e.g. a YouTube video about horses. [] turns it off.
+  "barkAt": ["horse", "horses", "pony", "dog", "dogs", "puppy", "puppies"],
+
+  // Rules: what her owner is doing -> how Zoe reacts.
+  //   process: exe names without .exe     title: text in the window title (browser tab titles show up here)
+  //   url:     text in the browser's address bar (foreground browser only; matched, never logged).
+  //            A rule with both title and url matches on either.
+  //   mood:    nap (go to the corner and sleep) | doze (sleep where she is) | hidden
+  //   scope:   foreground (default, only the active window) | any (any visible window)
+  // If several match, the strongest wins: hidden > nap > doze.
+  "rules": [
+    // Example work rules: Zoe takes herself off to the corner for a nap while these are in front,
+    // and wakes up when you switch to something else. Web apps often don't name themselves in the
+    // tab title, so match them on the address instead.
+    { "name": "excel",     "process": ["EXCEL"],                    "mood": "nap" },
+    { "name": "excel-web", "title": [" Excel"],                     "mood": "nap" },
+    { "name": "outlook",   "title": ["Outlook"],                    "mood": "nap" }
+    // { "name": "my-web-app", "url": ["app.example.com"],          "mood": "nap" },
+    // { "name": "example", "process": ["EXCEL"], "title": ["Payroll"], "mood": "hidden" }
+  ]
+}

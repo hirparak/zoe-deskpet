@@ -1,0 +1,19 @@
+# name	start	end	frames	prompt   (start/end are gen/keys/<name>.png; a trailing ! mirrors that pose)
+run	run_side	-	49	gallops at full speed to the right, running in place on a treadmill, legs reaching and pushing in a fast gallop cycle, ears flapping, tongue out.
+sit	sit_side	-	81	sits calmly and contentedly, breathing gently, blinks slowly, tail sweeps a little on the floor, small relaxed head movements.
+look	sit_front	-	81	sits facing the viewer and looks at the viewer, tilts her head curiously to one side and back, blinks, ears twitch.
+happy	sit_front	-	49	sits facing the viewer, overjoyed, tongue out panting, tail wagging fast, wiggling happily.
+sniff	sniff_side	-	49	sniffs the ground with her nose down, nose moving around searching, tail wagging slowly.
+scratch	sit_side	-	49	sits and lifts her back leg to scratch behind her ear rapidly, head tilted, eyes half closed.
+sleep	sleep_curl	-	81	is fast asleep curled up in a ball, slow deep breathing, body gently rising and falling, eyes closed, otherwise completely still.
+sleep_belly	sleep_belly	-	81	is fast asleep on her back with her belly up, paws in the air twitching gently as she dreams, slow breathing.
+rest	lie_side	-	81	lies on the floor resting with her head up, breathing slowly, blinks, ears twitch, tail thumps gently.
+dangle	dangle	-	49	is being held up in the air, legs dangling and paddling gently, ears swaying, looking sheepish.
+fall	jump_side	-	33	is falling down through the air, legs spread out, ears flapping upwards, surprised.
+liedown	stand_side	sleep_curl	49	lies down on the floor, turns around once and curls up into a ball to go to sleep.
+getup	sleep_curl	stand_side	49	wakes up, lifts her head, uncurls and stands up, then gives a little shake.
+stretch	stand_side	stand_side	49	does a big play bow stretch: front legs reach forward, chest goes down to the floor, bottom up in the air, then she stands back up.
+turn	stand_side	stand_side!	33	turns around on the spot to face the other way, turning her body towards the viewer as she turns.
+jump	stand_side	jump_side	25	crouches down and springs up into the air in a big leap.
+sitdown	stand_side	sit_side	25	sits down.
+standup	sit_side	stand_side	25	stands up from sitting.

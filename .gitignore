@@ -1,0 +1,10 @@
+bin/
+obj/
+dist/
+*.user
+.vs/
+photos/
+gen/*
+!gen/keys/
+gen/keys/*_[0-9][0-9].png
+__pycache__/
