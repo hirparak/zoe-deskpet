@@ -792,4 +792,34 @@ public class SleepCycleTests
         Assert.NotEqual(PetState.Circle, sim.State);
         for (int i = 0; i < 60; i++) { sim.Tick(1 / 60.0, ps, Areas); Assert.NotEqual(PetState.LieDown, sim.State); }
     }
+
+    [Fact]
+    public void ChasesHerTailRoundInACircleNotOnTheSpot()
+    {
+        var anims = new Dictionary<string, AnimInfo>(Anims) { ["turn"] = new(10, 20, false), ["turnback"] = new(10, 20, false), ["spin"] = new(20, 18, false) };
+        var ps = PlatformBuilder.Build(new World(Areas, []), 100, 40);
+        bool spun = false;
+        for (int seed = 0; seed < 8 && !spun; seed++)
+        {
+            var sim = new PetSim(anims, new ZoeConfig { SleepCycle = false }, new Random(seed)) { HalfWidth = 60 };
+            sim.Spawn(1300, 1300);
+            var seen = new List<string>(); double x0 = 0, far = 0; bool was = false;
+            for (int i = 0; i < 60 * 300; i++)
+            {
+                sim.Tick(1 / 60.0, ps, Areas);
+                bool now = sim.State == PetState.Spin;
+                if (now && !was) { x0 = sim.X; seen.Clear(); far = 0; }
+                if (now) { far = Math.Max(far, Math.Abs(sim.X - x0)); if (seen.Count == 0 || seen[^1] != sim.Anim) seen.Add(sim.Anim); }
+                if (was && !now)
+                {
+                    spun = true;
+                    Assert.Equal(new[] { "run", "turnback", "run", "turn", "run", "turnback", "run", "turn", "run", "turnback", "run", "turn" }, seen);
+                    Assert.True(far > 20, $"moved only {far:0}px");
+                    break;
+                }
+                was = now;
+            }
+        }
+        Assert.True(spun, "never chased her tail");
+    }
 }

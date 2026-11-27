@@ -11,7 +11,7 @@ jumps up onto them, rides along when a window is dragged, falls when one closes,
 | full-screen video / PowerPoint slideshow     | hidden                                  |
 | screen sharing in Teams/Zoom, screenshots    | invisible to the capture (her owner still sees her) |
 
-her owner's controls: the Zoe icon in the system tray (come here / nap time / go to bed / goodbye).
+her owner's controls: the Zoe icon in the system tray (come here, throw the ball, mood, energy, start when I sign in, turn off).
 
 ## Just want to run her?
 

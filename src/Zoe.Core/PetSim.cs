@@ -148,7 +148,7 @@ public sealed class PetSim
         UpdateBall(dt);
 
         _stateTime += dt;
-        _animTime += dt;
+        _animTime += dt * (State == PetState.Spin && _circleAnim != "run" ? 2.2 : 1);   // tail-chase turns are quick
 
         UpdateTiredness(dt);
         if (State == PetState.Air) UpdateAir(dt);
@@ -193,6 +193,27 @@ public sealed class PetSim
         };
         if (perSec > 0) perSec *= Drowsy;
         Tiredness = Math.Clamp(Tiredness + perSec * dt, 0, 1);
+    }
+
+    private bool CanLoop(string gait) => _anims.ContainsKey("turnback") && _anims.ContainsKey("turn") && _anims.ContainsKey(gait);
+
+    /// <summary>Go round in a small circle, as seen side-on: a few steps, turn away from us, a few steps back,
+    /// turn towards us. True once she has made the given number of half-circles.</summary>
+    private bool Loop(double dt, string gait, double speed, double stride, int halves)
+    {
+        if (_circleAnim == gait)
+        {
+            double step = speed * _s * dt, nx = X + (FacingRight ? step : -step);
+            if (_circleDist < stride * _s && CanStand(nx)) { X = nx; _circleDist += step; }
+            else _circleAnim = _circleHalf % 2 == 0 ? "turnback" : "turn";
+        }
+        else if (Anim == _circleAnim && AnimFinished())
+        {
+            FacingRight = !FacingRight;
+            if (++_circleHalf >= halves) return true;
+            _circleAnim = gait; _circleDist = 0;
+        }
+        return false;
     }
 
     // ---------- interaction ----------
@@ -567,6 +588,10 @@ public sealed class PetSim
             case PetState.Run:
                 Move(dt);
                 break;
+            case PetState.Spin when CanLoop("run"):
+                // After her tail: the same little circle at a scamper, three times round, then a bit giddy.
+                if (Loop(dt, "run", _cfg.RunSpeed * 0.5, 30, 6)) WagFor(Rand(1.5, 2.5));
+                break;
             case PetState.Scratch:
             case PetState.Dig:
             case PetState.Spin:
@@ -574,20 +599,10 @@ public sealed class PetSim
                 if (AnimFinished()) Decide();
                 break;
             case PetState.Circle:
-                // Walking a tight circle, seen side-on: a few steps, turn away, a few steps back, turn towards us. Twice round.
-                if (_circleAnim == "walk")
-                {
-                    double step = _cfg.WalkSpeed * 0.7 * _s * dt, nx = X + (FacingRight ? step : -step);
-                    if (_circleDist < 36 * _s && CanStand(nx)) { X = nx; _circleDist += step; }
-                    else _circleAnim = _circleHalf % 2 == 0 ? "turnback" : "turn";
-                }
-                else if (Anim == _circleAnim && AnimFinished())
-                {
-                    FacingRight = !FacingRight;
-                    if (++_circleHalf >= 4) Set(PetState.LieDown);
-                    else { _circleAnim = "walk"; _circleDist = 0; }
-                }
+                // Walking a tight circle before bed: twice round, unhurried, then down.
+                if (Loop(dt, "walk", _cfg.WalkSpeed * 0.7, 36, 4)) Set(PetState.LieDown);
                 break;
+
             case PetState.RestDown:
                 if (AnimFinished()) Enter(PetState.Rest, _restFor);
                 break;
@@ -1013,9 +1028,8 @@ public sealed class PetSim
     private void Set(PetState s, double duration = 0)
     {
         // Round and round before she settles, like dogs do.
-        if (s == PetState.LieDown && State != PetState.Circle && _posture != Posture.Lie &&
-            _anims.ContainsKey("turnback") && _anims.ContainsKey("turn") && _anims.ContainsKey("walk"))
-        { s = PetState.Circle; _circleAnim = "walk"; _circleDist = 0; _circleHalf = 0; }
+        if (s == PetState.LieDown && State != PetState.Circle && _posture != Posture.Lie && CanLoop("walk"))
+            s = PetState.Circle;
         var want = PostureOf(s);
         if (want != Posture.None && _posture != Posture.None && want != _posture)
         {
@@ -1042,6 +1056,7 @@ public sealed class PetSim
         _stateTime = 0;
         _stateDuration = duration;
         _animTime = 0;
+        if (s is PetState.Circle or PetState.Spin) { _circleAnim = s == PetState.Spin ? "run" : "walk"; _circleDist = 0; _circleHalf = 0; }
         // Sleep always starts curled up (that's how lie-down ends); belly-up only comes via a roll-over.
         _variant = _nextVariant ?? (s == PetState.Sleep ? null : PickVariant(BaseAnim(s)));
         if (s != PetState.Transition) _nextVariant = null;
@@ -1108,6 +1123,7 @@ public sealed class PetSim
         PetState.Transition => _transitionAnim,
         PetState.Crouch => "jumpprep",
         PetState.Circle => _circleAnim,
+        PetState.Spin when CanLoop("run") => _circleAnim,
         _ => _variant ?? BaseAnim(State),
     };
 
