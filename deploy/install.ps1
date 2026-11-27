@@ -31,6 +31,7 @@ if ($Uninstall) {
     Get-Process Zoe -ErrorAction SilentlyContinue | Stop-Process -Force
     Unregister-ScheduledTask -TaskName $Task -Confirm:$false -ErrorAction SilentlyContinue
     Remove-Item -Recurse -Force $Dest -ErrorAction SilentlyContinue
+    Remove-Item -Force "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Zoe.lnk" -ErrorAction SilentlyContinue
     "Zoe uninstalled."
     return
 }
@@ -53,7 +54,11 @@ if (-not (Test-Path "$Dest\zoe.json")) { Copy-Item "$src\zoe.json" $Dest }
 icacls $Dest /inheritance:r /grant:r "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-544:(OI)(CI)F" "*S-1-5-32-545:(OI)(CI)RX" | Out-Null
 icacls $Dest /setowner "*S-1-5-32-544" /T | Out-Null
 
-$action = New-ScheduledTaskAction -Execute "$Dest\Zoe.exe" -WorkingDirectory $Dest
+# --autostart lets Zoe's own menu ("Start when I sign in") decline the sign-in start without admin rights.
+$action = New-ScheduledTaskAction -Execute "$Dest\Zoe.exe" -Argument "--autostart" -WorkingDirectory $Dest
+# A Start menu entry, so she can be brought back after "Turn Zoe off".
+$lnk = (New-Object -ComObject WScript.Shell).CreateShortcut("$env:ProgramData\Microsoft\Windows\Start Menu\Programs\Zoe.lnk")
+$lnk.TargetPath = "$Dest\Zoe.exe"; $lnk.WorkingDirectory = $Dest; $lnk.Description = "Zoe the desk pet"; $lnk.Save()
 $trigger = New-ScheduledTaskTrigger -AtLogOn -User $User
 $trigger.Delay = "PT20S"   # let the desktop settle before she drops in
 $principal = New-ScheduledTaskPrincipal -UserId $User -LogonType Interactive -RunLevel Limited
@@ -69,5 +74,5 @@ if ($StartNow) {
     for ($i = 0; $i -lt 30 -and -not (Get-Process Zoe -ErrorAction SilentlyContinue); $i++) { Start-Sleep 1 }
     $short = $User.Split("\")[-1]
     if (Get-Process Zoe -ErrorAction SilentlyContinue) { "Zoe is running." }
-    else { "Task started but Zoe isn't running - is $User logged in? Log: C:\Users\$short\AppData\Local\Zoe\zoe.log" }
+    else { "Task started but Zoe isn't running - is $User logged in, and is 'Start when I sign in' ticked in her menu? Log: C:\Users\$short\AppData\Local\Zoe\zoe.log" }
 }

@@ -141,8 +141,8 @@
       "fps": 16,
       "loop": false
     },
-    "circle": {
-      "fps": 10,
+    "turnback": {
+      "fps": 14,
       "loop": false
     }
   }

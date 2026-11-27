@@ -63,6 +63,9 @@ public sealed class PetSim
     private bool _following, _seekGo;
     private double _restFor = 10;
     private bool _bedtimeYawn;
+    private string _circleAnim = "walk";   // circling before bed: "walk", "turnback" or "turn"
+    private double _circleDist;
+    private int _circleHalf;
     private int _seek;           // attention seeking: 1 stare, 2 paw, 3 stare, 4 bark, 5 stare
     private double _followUntil, _cursorMovedAt, _lastCursorX = double.NaN, _lastAttention;
 
@@ -571,7 +574,19 @@ public sealed class PetSim
                 if (AnimFinished()) Decide();
                 break;
             case PetState.Circle:
-                if (AnimFinished()) Set(PetState.LieDown);
+                // Walking a tight circle, seen side-on: a few steps, turn away, a few steps back, turn towards us. Twice round.
+                if (_circleAnim == "walk")
+                {
+                    double step = _cfg.WalkSpeed * 0.7 * _s * dt, nx = X + (FacingRight ? step : -step);
+                    if (_circleDist < 36 * _s && CanStand(nx)) { X = nx; _circleDist += step; }
+                    else _circleAnim = _circleHalf % 2 == 0 ? "turnback" : "turn";
+                }
+                else if (Anim == _circleAnim && AnimFinished())
+                {
+                    FacingRight = !FacingRight;
+                    if (++_circleHalf >= 4) Set(PetState.LieDown);
+                    else { _circleAnim = "walk"; _circleDist = 0; }
+                }
                 break;
             case PetState.RestDown:
                 if (AnimFinished()) Enter(PetState.Rest, _restFor);
@@ -998,8 +1013,9 @@ public sealed class PetSim
     private void Set(PetState s, double duration = 0)
     {
         // Round and round before she settles, like dogs do.
-        if (s == PetState.LieDown && State != PetState.Circle && _posture != Posture.Lie && _anims.ContainsKey("circle"))
-            s = PetState.Circle;
+        if (s == PetState.LieDown && State != PetState.Circle && _posture != Posture.Lie &&
+            _anims.ContainsKey("turnback") && _anims.ContainsKey("turn") && _anims.ContainsKey("walk"))
+        { s = PetState.Circle; _circleAnim = "walk"; _circleDist = 0; _circleHalf = 0; }
         var want = PostureOf(s);
         if (want != Posture.None && _posture != Posture.None && want != _posture)
         {
@@ -1091,6 +1107,7 @@ public sealed class PetSim
         PetState.Air => Vy < 0 ? "jump" : "fall",
         PetState.Transition => _transitionAnim,
         PetState.Crouch => "jumpprep",
+        PetState.Circle => _circleAnim,
         _ => _variant ?? BaseAnim(State),
     };
 

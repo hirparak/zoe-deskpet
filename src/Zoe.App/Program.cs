@@ -10,6 +10,9 @@ internal static class Program
         int i = Array.IndexOf(args, "--exit-after");
         if (i >= 0 && i + 1 < args.Length && double.TryParse(args[i + 1], out double secs)) PetForm.ExitAfter = secs;
 
+        // The sign-in task passes --autostart; "Start when I sign in" unticked in her menu means not today.
+        if (args.Contains("--autostart") && !Prefs.Load().Autostart) { Log.Write("autostart is off; not starting"); return; }
+
         using var single = new Mutex(true, @"Local\ZoeDeskPet", out bool first);
         if (!first) return;
 

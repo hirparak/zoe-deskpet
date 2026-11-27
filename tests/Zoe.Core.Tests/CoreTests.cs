@@ -765,15 +765,23 @@ public class SleepCycleTests
     [Fact]
     public void CirclesBeforeLyingDownAndGivesUpIfWorkIsOver()
     {
-        var anims = new Dictionary<string, AnimInfo>(Anims) { ["circle"] = new(20, 10, false) };
+        var anims = new Dictionary<string, AnimInfo>(Anims) { ["turn"] = new(10, 20, false), ["turnback"] = new(10, 20, false) };
         var ps = PlatformBuilder.Build(new World(Areas, []), 100, 40);
         var sim = new PetSim(anims, new ZoeConfig(), new Random(4)) { HalfWidth = 60 };
         sim.Spawn(1300, 1300);
         for (int i = 0; i < 120; i++) sim.Tick(1 / 60.0, ps, Areas);
         sim.Mood = Mood.Doze;
         var seen = new List<string>();
-        for (int i = 0; i < 60 * 8; i++) { sim.Tick(1 / 60.0, ps, Areas); if (seen.Count == 0 || seen[^1] != sim.Anim) seen.Add(sim.Anim); }
-        Assert.Equal(new[] { "circle", "liedown", "sleep" }, seen.SkipWhile(a => a != "circle").Take(3));
+        double x0 = sim.X, far = 0;
+        for (int i = 0; i < 60 * 12; i++)
+        {
+            sim.Tick(1 / 60.0, ps, Areas); far = Math.Max(far, Math.Abs(sim.X - x0));
+            if (seen.Count == 0 || seen[^1] != sim.Anim) seen.Add(sim.Anim);
+        }
+        Assert.Equal(new[] { "walk", "turnback", "walk", "turn", "walk", "turnback", "walk", "turn", "liedown", "sleep" },
+            seen.SkipWhile(a => a != "walk").Take(10));
+        Assert.True(far > 20, $"she only moved {far:0}px while circling");
+        Assert.True(Math.Abs(sim.X - x0) < 8, "she should end up where she started");
 
         sim.Mood = Mood.Normal;
         for (int i = 0; i < 60 * 3; i++) sim.Tick(1 / 60.0, ps, Areas);

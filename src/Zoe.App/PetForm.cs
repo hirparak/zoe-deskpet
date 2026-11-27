@@ -43,6 +43,10 @@ internal sealed class PetForm : Form
 
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public Mood? Override { get; set; }
+    public Prefs Prefs { get; } = Prefs.Load();
+    public double Energy => _cfg.Energy;
+    /// <summary>Menu choices win over zoe.json.</summary>
+    public void ApplyPrefs() { if (Prefs.Energy is { } e) _cfg.Energy = e; }
     public PetSim Sim => _sim;
 
     public PetForm(string baseDir)
@@ -50,6 +54,7 @@ internal sealed class PetForm : Form
         _baseDir = baseDir;
         _configPath = Path.Combine(baseDir, "zoe.json");
         _cfg = LoadConfig();
+        ApplyPrefs();
         FormBorderStyle = FormBorderStyle.None;
         ShowInTaskbar = false;
         StartPosition = FormStartPosition.Manual;
@@ -155,7 +160,9 @@ internal sealed class PetForm : Form
     {
         Mood mood = Mood.Normal;
         string why = "normal";
-        if (Override is { } o) { mood = o; why = "tray menu"; }
+        // "Stay up and play" beats the work rules and dozing, but she still keeps out of full-screen video.
+        if (Override == Mood.Normal && _cfg.HideWhenFullscreen && Desktop.FullscreenBusy()) { mood = Mood.Hidden; why = "full screen"; }
+        else if (Override is { } o) { mood = o; why = "tray menu"; }
         else
         {
             if (_cfg.HideWhenFullscreen && Desktop.FullscreenBusy()) { mood = Mood.Hidden; why = "full screen"; }
@@ -319,7 +326,8 @@ internal sealed class PetForm : Form
         // PetSim holds a reference to _cfg, so copy the live-tunable values across.
         _cfg.Rules = n.Rules; _cfg.BarkAt = n.BarkAt; _cfg.NapCorner = n.NapCorner; _cfg.IdleDozeMinutes = n.IdleDozeMinutes;
         _cfg.HideWhenFullscreen = n.HideWhenFullscreen; _cfg.Energy = n.Energy;
-        _cfg.WalkSpeed = n.WalkSpeed; _cfg.RunSpeed = n.RunSpeed;
+        _cfg.WalkSpeed = n.WalkSpeed; _cfg.RunSpeed = n.RunSpeed; _cfg.SleepCycle = n.SleepCycle;
+        ApplyPrefs();
         if (n.HideFromScreenCapture != _cfg.HideFromScreenCapture)
         {
             _cfg.HideFromScreenCapture = n.HideFromScreenCapture;
