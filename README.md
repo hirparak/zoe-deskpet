@@ -16,16 +16,13 @@ her owner's controls: the Zoe icon in the system tray (come here / nap time / go
 ## Just want to run her?
 
 1. Download `Zoe.zip` from the latest release (Releases, on the right of this page) and unzip it.
-2. Open the unzipped `ZoeInstall` folder, click in the address bar, type `powershell` and press Enter.
-   For the proper install it must be an **administrator** PowerShell: Start, type PowerShell, right-click,
-   Run as administrator, then `cd` to the folder.
-3. Run: `powershell -ExecutionPolicy Bypass -File install.ps1 -StartNow`
+2. To try her, double-click `Zoe.exe` in the unzipped `ZoeInstall` folder. Nothing is installed, and
+   "Goodbye for today" in her tray menu closes her.
+3. To install her properly (starts at every logon), open an **administrator** PowerShell in that folder and run
+   `powershell -ExecutionPolicy Bypass -File install.ps1 -StartNow`.
+   To remove her: `powershell -ExecutionPolicy Bypass -File install.ps1 -Uninstall`.
 
-That installs her to `C:\Program Files\Zoe` for whoever is signed in and starts her at every logon.
-To remove her: `powershell -ExecutionPolicy Bypass -File install.ps1 -Uninstall`.
-
-Just trying her out? Double-click `Zoe.exe` in the unzipped folder instead: nothing is installed,
-and "Goodbye for today" in her tray menu closes her.
+Want to build one for your own pet? See [docs/START_PROMPT.md](docs/START_PROMPT.md).
 
 ## Layout
 

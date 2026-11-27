@@ -357,6 +357,7 @@ public class PlayTests
         ["wag"] = new(8, 16, true), ["greet"] = new(40, 16, false), ["playbow"] = new(20, 16, false),
         ["carry"] = new(8, 16, true), ["pickup"] = new(10, 16, false), ["drop"] = new(10, 16, false),
         ["bark"] = new(8, 16, true), ["paw"] = new(16, 16, false), ["sit~look"] = new(8, 16, true),
+        ["restdown"] = new(20, 16, false), ["rest"] = new(40, 16, true), ["restup"] = new(20, 16, false),
         ["scratch"] = new(30, 16, false), ["dig"] = new(20, 16, false), ["spin"] = new(30, 16, false),
         ["bellydown"] = new(20, 16, false), ["belly"] = new(8, 16, true), ["bellyup"] = new(20, 16, false),
     };
@@ -564,6 +565,32 @@ public class PlayTests
         Assert.Contains(PetState.Dig, seen);
         Assert.Contains(PetState.Spin, seen);
         Assert.Contains(PetState.Wag, seen);
+    }
+
+    [Fact]
+    public void SplootsProperlyAndGetsUpForWork()
+    {
+        bool rested = false;
+        for (int seed = 0; seed < 10 && !rested; seed++)
+        {
+            var (sim, ps) = Make(seed);
+            string prev = "";
+            for (int i = 0; i < 60 * 200; i++)
+            {
+                sim.Tick(1 / 60.0, ps, Areas);
+                // only ever reached by lying down into it, and left by getting up out of it
+                if (sim.Anim == "rest" && prev != "rest") Assert.Equal("restdown", prev);
+                if (prev == "rest" && sim.Anim != "rest") Assert.Equal("restup", sim.Anim);
+                prev = sim.Anim;
+                if (sim.State == PetState.Rest && !rested)
+                {
+                    rested = true;
+                    sim.Mood = Mood.Nap; // Acme comes up mid-sploot
+                }
+            }
+            if (rested) Assert.Equal(PetState.Sleep, sim.State);
+        }
+        Assert.True(rested);
     }
 
     [Fact]

@@ -39,9 +39,12 @@ PLAN = {
     "bellydown":   ("bellydown",   20, False, ["--no-leg-gaps", "--drop", "15:24"]),      # lie down and roll onto her back
     "bellydown@up": ("bellyup",    20, False, ["--no-leg-gaps", "--drop", "15:24", "--reverse"]),
     "belly":       ("belly",       16, True,  ["--no-leg-gaps", "--range", "0:999"]),   # belly rub
-    "scratch":     ("scratch",     16, False, []),      # one leg up to her neck, from a proper key pose
+    "scratch":     ("scratch",     20, False, ["--holes-left", "0.45"]),   # facing you: hind leg up from the hip to her ear
     "dig":         ("dig",         16, False, ["--range", "0:19"]),
     "spin":        ("spin",        18, False, []),                     # chases her tail: two full circles
+    "restdown":    ("restdown",    16, False, ["--no-leg-gaps", "--range", "0:18"]),   # down into a sploot
+    "rest":        ("rest",        12, True,  ["--no-leg-gaps", "--range", "0:999"]),  # splooted, awake, looking about
+    "restup":      ("restup",      16, False, ["--no-leg-gaps", "--range", "0:17"]),
     "sitdown":     ("sitdown",     20, False, ["--range", "0:17"]),    # trimmed: no frozen frames after she's down
     "standup":     ("standup",     20, False, ["--range", "2:13"]),    # trimmed: no half-second freeze before she sets off
 }

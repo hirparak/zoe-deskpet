@@ -28,7 +28,7 @@ REF = Path(__file__).resolve().parent.parent / "gen/keys/stand_side.png"
 PALETTE_SIZE = 16
 
 
-def background_mask(rgb: np.ndarray, thresh=38, leg_gaps=True) -> np.ndarray:
+def background_mask(rgb: np.ndarray, thresh=38, leg_gaps=True, holes_left=0.0) -> np.ndarray:
     """True where the pixel is background: near-white AND connected to the image border."""
     h, w, _ = rgb.shape
     near_white = (255 - rgb.astype(int)).sum(axis=2) < thresh * 3
@@ -63,6 +63,16 @@ def background_mask(rgb: np.ndarray, thresh=38, leg_gaps=True) -> np.ndarray:
                 continue
             rows = np.nonzero((holes == i).any(axis=1))[0]
             if (rows.max() - top) / height >= 0.79:
+                bg[holes == i] = True
+    if holes_left:
+        # Poses with a raised limb trap backdrop between the limb and the body, well above the feet. Her chest
+        # patch is central, so any enclosed backdrop-grey region centred left of `holes_left` (fraction of the
+        # frame width) is background.
+        grey = (rgb.max(axis=2).astype(int) - rgb.min(axis=2)) < 14
+        holes, m = ndimage.label(near_white & grey & ~bg)
+        for i in range(1, m + 1):
+            xs = np.nonzero(holes == i)[1]
+            if xs.mean() < holes_left * w and len(xs) >= 60:
                 bg[holes == i] = True
     return bg
 
@@ -102,9 +112,9 @@ EXTRA = np.array([PINK, BALL, BALL_DARK])
 OUTLINE = (24, 20, 22)  # darkest palette entry is close to this; used for the silhouette edge
 
 
-def to_sprite(path, pal, leg_gaps=True):
+def to_sprite(path, pal, leg_gaps=True, holes_left=0.0):
     rgb = np.array(Image.open(path).convert("RGB"))
-    col, alpha = shrink(rgb, ~background_mask(rgb, leg_gaps=leg_gaps))
+    col, alpha = shrink(rgb, ~background_mask(rgb, leg_gaps=leg_gaps, holes_left=holes_left))
     q = np.array(Image.fromarray(col).quantize(palette=pal, dither=Image.Dither.NONE).convert("RGB"))
     # White is only for genuinely white fur (her chest patch): pale tan highlights that snapped to white
     # go to the nearest non-white palette colour instead.
@@ -172,6 +182,7 @@ def main():
     ap.add_argument("--range", help="explicit start:end frame range")
     ap.add_argument("--step", type=int, default=1, help="keep every Nth frame")
     ap.add_argument("--mirror", action="store_true", help="flip horizontally (source faces left)")
+    ap.add_argument("--holes-left", type=float, default=0.0, help="treat enclosed backdrop left of this fraction of the width as background")
     ap.add_argument("--drop", help="start:end frames to cut out of the middle (e.g. a held pose)")
     ap.add_argument("--reverse", action="store_true", help="play backwards")
     ap.add_argument("--no-leg-gaps", action="store_true", help="lying/falling poses: chest sits low, keep enclosed white")
@@ -179,7 +190,7 @@ def main():
 
     pal = palette_image()
     paths = sorted(Path(a.src).glob("[0-9]*.png"))
-    frames = [to_sprite(p, pal, leg_gaps=not a.no_leg_gaps) for p in paths]
+    frames = [to_sprite(p, pal, leg_gaps=not a.no_leg_gaps, holes_left=a.holes_left) for p in paths]
     if a.mirror:
         frames = [f[:, ::-1] for f in frames]
 

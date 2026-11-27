@@ -16,6 +16,7 @@ from pathlib import Path
 UNET = "qwen_image_edit_2511_fp8_e4m3fn_scaled_lightning_comfyui_4steps_v1.0.safetensors"
 CLIP = "qwen_2.5_vl_7b_fp8_scaled.safetensors"
 VAE = "qwen_image_vae.safetensors"
+UNET_FULL = "qwen_image_edit_2511_fp8mixed.safetensors"   # not distilled: 30 steps with real CFG, follows the prompt more closely
 ANGLES_LORA = "qwen-edit-2511-multiple-angles.safetensors"
 
 
@@ -30,9 +31,9 @@ def upload(server, path):
     return json.load(urllib.request.urlopen(req))["name"]
 
 
-def workflow(images, prompt, seed, width, height, angles):
+def workflow(images, prompt, seed, width, height, angles, full=False, negative=""):
     wf = {
-        "1": {"class_type": "UNETLoader", "inputs": {"unet_name": UNET, "weight_dtype": "default"}},
+        "1": {"class_type": "UNETLoader", "inputs": {"unet_name": UNET_FULL if full else UNET, "weight_dtype": "default"}},
         "3": {"class_type": "CLIPLoader", "inputs": {"clip_name": CLIP, "type": "qwen_image"}},
         "4": {"class_type": "VAELoader", "inputs": {"vae_name": VAE}},
         "7": {"class_type": "EmptySD3LatentImage", "inputs": {"width": width, "height": height, "batch_size": 1}},
@@ -43,7 +44,7 @@ def workflow(images, prompt, seed, width, height, angles):
         model = ["2", 0]
     wf["5"] = {"class_type": "ModelSamplingAuraFlow", "inputs": {"model": model, "shift": 3.1}}
     enc = {"clip": ["3", 0], "prompt": prompt, "vae": ["4", 0]}
-    neg = {"clip": ["3", 0], "prompt": "", "vae": ["4", 0]}
+    neg = {"clip": ["3", 0], "prompt": negative, "vae": ["4", 0]}
     for i, name in enumerate(images, 1):
         wf[f"10{i}"] = {"class_type": "LoadImage", "inputs": {"image": name}}
         wf[f"11{i}"] = {"class_type": "FluxKontextImageScale", "inputs": {"image": [f"10{i}", 0]}}
@@ -52,7 +53,7 @@ def workflow(images, prompt, seed, width, height, angles):
     wf["21"] = {"class_type": "TextEncodeQwenImageEditPlus", "inputs": neg}
     wf["30"] = {"class_type": "KSampler", "inputs": {
         "model": ["5", 0], "positive": ["20", 0], "negative": ["21", 0], "latent_image": ["7", 0],
-        "seed": seed, "steps": 4, "cfg": 1.0, "sampler_name": "euler", "scheduler": "simple", "denoise": 1.0}}
+        "seed": seed, "steps": 30 if full else 4, "cfg": 4.0 if full else 1.0, "sampler_name": "euler", "scheduler": "simple", "denoise": 1.0}}
     wf["31"] = {"class_type": "VAEDecode", "inputs": {"samples": ["30", 0], "vae": ["4", 0]}}
     wf["32"] = {"class_type": "SaveImage", "inputs": {"images": ["31", 0], "filename_prefix": "zoe"}}
     return wf
@@ -108,11 +109,13 @@ def main():
     ap.add_argument("--width", type=int, default=1024)
     ap.add_argument("--height", type=int, default=1024)
     ap.add_argument("--angles", type=float, default=0.0, help="multiple-angles LoRA strength (0 = off)")
+    ap.add_argument("--full", action="store_true", help="full 30-step model with CFG instead of the 4-step lightning one")
+    ap.add_argument("--negative", default="")
     ap.add_argument("--server", default="http://127.0.0.1:18188")
     a = ap.parse_args()
     names = [upload(a.server, p) for p in a.images[:3]]
     seed = a.seed if a.seed is not None else random.randrange(2**32)
-    secs = run(a.server, workflow(names, a.prompt, seed, a.width, a.height, a.angles), a.out)
+    secs = run(a.server, workflow(names, a.prompt, seed, a.width, a.height, a.angles, a.full, a.negative), a.out)
     print(f"{a.out}  seed={seed}  {secs:.0f}s")
 
 

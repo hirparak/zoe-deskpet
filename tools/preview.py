@@ -5,7 +5,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 meta = json.loads((ROOT / "sprites/sprites.json").read_text())
 GROUPS = [
-    ("Newest: small idles, and redone bark / happy / sleep", ["scratch", "dig", "spin", "bark", "happy", "sleep"]),
+    ("Newest: sploot, new scratch, cleaner gallop", ["restdown", "rest", "restup", "scratch", "run"]),
+    ("Small idles, and redone bark / happy / sleep", ["dig", "spin", "bark", "happy", "sleep"]),
     ("Belly rubs and asking to play", ["bellydown", "belly", "bellyup", "paw"]),
     ("Playtime", ["wag", "greet", "playbow", "pickup", "carry", "drop", "ball"]),
     ("On the move", ["walk", "run", "sniff", "jump (whole)", "fall", "turn"]),
@@ -13,7 +14,7 @@ GROUPS = [
     ("Naps", ["liedown", "sleep", "rollover", "sleep~belly", "rollback", "getup", "stretch"]),
     ("Picked up", ["dangle"]),
 ]
-LABEL = {"spin": "chase tail", "bellydown": "roll over", "belly": "belly rub", "bellyup": "roll back up", "paw": "paw on your knee",
+LABEL = {"restdown": "sploot (lie down)", "rest": "sploot", "restup": "up from sploot", "spin": "chase tail", "bellydown": "roll over", "belly": "belly rub", "bellyup": "roll back up", "paw": "paw on your knee",
          "wag": "tail wag", "greet": "greeting (paws up)", "playbow": "play bow", "pickup": "pick up ball",
          "carry": "carry ball", "drop": "drop ball",
          "sit~look": "sit (looking at you)", "sit~rest": "rest", "sleep~belly": "sleep (belly up)", "liedown": "lie down",

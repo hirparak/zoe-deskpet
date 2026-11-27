@@ -7,7 +7,7 @@ public sealed record AnimInfo(int Frames, double Fps, bool Loop)
 
 public enum PetState { Sit, Walk, Run, Sniff, Yawn, Stretch, LieDown, Sleep, GetUp, Happy, Dangle, Air, Turn, Transition, Crouch,
     Wag, Greet, PlayBow, PickUp, Drop, Carry, Bark, Paw, BellyDown, Belly, BellyUp,
-    Scratch, Dig, Spin }
+    Scratch, Dig, Spin, RestDown, Rest, RestUp }
 
 /// <summary>Body posture, used to insert sit-down / stand-up transitions between states.</summary>
 public enum Posture { None, Stand, Sit, Lie }
@@ -26,7 +26,7 @@ public sealed class PetSim
         ["run"] = "walk", ["walk"] = "sit", ["sniff"] = "sit", ["yawn"] = "sit",
         ["stretch"] = "sit", ["liedown"] = "sleep", ["sleep"] = "sit", ["getup"] = "sit",
         ["happy"] = "sit", ["wag"] = "sit", ["greet"] = "happy", ["playbow"] = "stretch",
-        ["scratch"] = "yawn", ["dig"] = "sniff", ["spin"] = "wag", ["bark"] = "wag", ["paw"] = "happy", ["bellydown"] = "liedown", ["belly"] = "sleep", ["bellyup"] = "getup",
+        ["restdown"] = "liedown", ["rest"] = "sleep", ["restup"] = "getup", ["scratch"] = "yawn", ["dig"] = "sniff", ["spin"] = "wag", ["bark"] = "wag", ["paw"] = "happy", ["bellydown"] = "liedown", ["belly"] = "sleep", ["bellyup"] = "getup",
         ["pickup"] = "sniff", ["drop"] = "sniff", ["carry"] = "walk", ["dangle"] = "fall", ["jump"] = "fall", ["fall"] = "sit", ["turn"] = "walk",
     };
 
@@ -61,6 +61,7 @@ public sealed class PetSim
     private int _fetch;          // 1 running off-screen, 2 away, 3 coming back with the ball
     private double _fetchWait, _petUntil, _nextBark;
     private bool _following, _seekGo;
+    private double _restFor = 10;
     private int _seek;           // attention seeking: 1 stare, 2 paw, 3 stare, 4 bark, 5 stare
     private double _followUntil, _cursorMovedAt, _lastCursorX = double.NaN, _lastAttention;
 
@@ -161,6 +162,8 @@ public sealed class PetSim
         bool twice = _clock - _lastPoke < 1.2;
         _lastPoke = _clock;
         if (State is PetState.Sleep or PetState.LieDown) WakeUp();
+        else if (State is PetState.Rest) Enter(PetState.RestUp, 0); // up she gets
+        else if (State is PetState.RestDown or PetState.RestUp) return;
         else if (State is PetState.Carry or PetState.PickUp or PetState.Drop || _fetch != 0) return;
         else if (State is PetState.Belly or PetState.BellyDown or PetState.BellyUp) Pet();
         else if (twice && _anims.ContainsKey("greet")) { _targetX = null; Set(PetState.Greet); } // double-click: paws up
@@ -171,7 +174,8 @@ public sealed class PetSim
     public void Greet()
     {
         if (!_anims.ContainsKey("greet")) return;
-        if (_mood != Mood.Normal || !Grounded || _fetch != 0 || BallHeld || State is PetState.Sleep or PetState.LieDown or PetState.GetUp or PetState.Belly or PetState.BellyDown or PetState.BellyUp) _greetPending = true;
+        if (_mood != Mood.Normal || !Grounded || _fetch != 0 || BallHeld || State is PetState.Sleep or PetState.LieDown or PetState.GetUp or PetState.Belly or PetState.BellyDown or PetState.BellyUp or PetState.RestDown or PetState.RestUp) _greetPending = true;
+        else if (State == PetState.Rest) { _greetPending = true; Enter(PetState.RestUp, 0); }
         else StartGreet();
     }
 
@@ -192,6 +196,7 @@ public sealed class PetSim
         if (_mood != Mood.Normal || !Grounded) return;
         _petUntil = _clock + 2.0; _lastAttention = _clock;
         if (State is PetState.Belly or PetState.BellyDown or PetState.BellyUp) return;
+        if (State == PetState.Rest) { Enter(PetState.RestUp, 0); return; }
         if (_chasing || _zoomLaps > 0 || _fetch != 0 || BallHeld) return;
         if (State is not (PetState.Sit or PetState.Walk or PetState.Run or PetState.Wag or PetState.Happy or PetState.Sniff or PetState.Paw)) return;
         _targetX = null; _ask = 0; _following = false; _seek = 0; _seekGo = false;
@@ -464,6 +469,9 @@ public sealed class PetSim
 
     private void UpdateGrounded(double dt)
     {
+        // Ball in play while she's splooted: up first.
+        if (State == PetState.Rest && _mood == Mood.Normal && BallActive && !BallHeld && _ballWanted && _clock >= _chaseAfter)
+        { Enter(PetState.RestUp, 0); return; }
         // Ball in play: drop what she's doing and go after it.
         if (_mood == Mood.Normal && BallActive && !BallHeld && _ballWanted && !_chasing && _clock >= _chaseAfter &&
             _fetch == 0 &&
@@ -519,7 +527,14 @@ public sealed class PetSim
             case PetState.Scratch:
             case PetState.Dig:
             case PetState.Spin:
+            case PetState.RestUp:
                 if (AnimFinished()) Decide();
+                break;
+            case PetState.RestDown:
+                if (AnimFinished()) Enter(PetState.Rest, _restFor);
+                break;
+            case PetState.Rest:
+                if (_stateTime >= _stateDuration) Enter(PetState.RestUp, 0);
                 break;
             case PetState.Paw:
             case PetState.BellyUp:
@@ -795,6 +810,8 @@ public sealed class PetSim
         _targetX = null;
         if (_mood is Mood.Doze or Mood.Nap && State is PetState.Belly or PetState.BellyDown)
         { Enter(PetState.BellyUp, 0); return; } // roll back onto her feet first
+        if (_mood is Mood.Doze or Mood.Nap && State is PetState.Rest or PetState.RestDown)
+        { Enter(PetState.RestUp, 0); return; }
         switch (_mood)
         {
             case Mood.Doze:
@@ -866,6 +883,7 @@ public sealed class PetSim
             (PetState.Carry, onFloor && HasBallAnims && !BallActive ? 0.55 * e : 0), // fetch her ball
             (PetState.BellyDown, _anims.ContainsKey("belly") && _anims.ContainsKey("bellydown") ? 0.3 : 0),
             (PetState.Greet, CursorX is not null ? 1.0 : 0),                         // follow the pointer about
+            (PetState.RestDown, _anims.ContainsKey("rest") && _anims.ContainsKey("restdown") ? 1.6 : 0), // sploot
             (PetState.Scratch, _anims.ContainsKey("scratch") ? 0.5 : 0),
             (PetState.Dig, _anims.ContainsKey("dig") ? 0.35 : 0),
             (PetState.Spin, _anims.ContainsKey("spin") ? 0.35 * e : 0),              // chase her tail
@@ -888,6 +906,7 @@ public sealed class PetSim
                 if (_rng.NextDouble() < 0.8 && StartFetch()) break;
                 DropBallNearby(); WagFor(0.5); break;
             case PetState.Greet: StartFollow(); break;
+            case PetState.RestDown: _restFor = Rand(8, 25); Set(pick); break;
             default: Set(pick); break;
         }
     }
@@ -984,7 +1003,8 @@ public sealed class PetSim
         PetState.Sit or PetState.Happy or PetState.Yawn => Posture.Sit,
         PetState.Walk or PetState.Run or PetState.Sniff or PetState.Stretch or PetState.Crouch or PetState.Wag
             or PetState.Greet or PetState.PlayBow or PetState.PickUp or PetState.Drop or PetState.Carry or PetState.Bark or PetState.BellyDown => Posture.Stand,
-        PetState.Dig or PetState.Spin => Posture.Stand,
+        PetState.Dig or PetState.Spin or PetState.RestDown => Posture.Stand,
+        PetState.Rest => Posture.Lie,
         PetState.Paw or PetState.Scratch => Posture.Sit,
         PetState.Belly => Posture.Lie,
         PetState.Sleep => Posture.Lie,
@@ -993,8 +1013,8 @@ public sealed class PetSim
 
     private static Posture EndPosture(PetState s) => s switch
     {
-        PetState.LieDown or PetState.BellyDown => Posture.Lie,
-        PetState.BellyUp or PetState.GetUp or PetState.Turn or PetState.Air or PetState.Dangle => Posture.Stand,
+        PetState.LieDown or PetState.BellyDown or PetState.RestDown => Posture.Lie,
+        PetState.RestUp or PetState.BellyUp or PetState.GetUp or PetState.Turn or PetState.Air or PetState.Dangle => Posture.Stand,
         _ => PostureOf(s),
     };
 

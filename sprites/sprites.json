@@ -122,7 +122,7 @@
       "loop": true
     },
     "scratch": {
-      "fps": 16,
+      "fps": 20,
       "loop": false
     },
     "dig": {
@@ -131,6 +131,18 @@
     },
     "spin": {
       "fps": 18,
+      "loop": false
+    },
+    "restdown": {
+      "fps": 16,
+      "loop": false
+    },
+    "rest": {
+      "fps": 12,
+      "loop": true
+    },
+    "restup": {
+      "fps": 16,
       "loop": false
     }
   }
